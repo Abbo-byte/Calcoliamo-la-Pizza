@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<title>Calcoliamo la Pizza</title>
+
+<!-- VIEWPORT -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+
+<!-- TEMA PWA -->
+<meta name="theme-color" content="#ffb347" />
+
+<!-- ICONS PWA -->
+<link rel="icon" type="image/png" sizes="192x192" href="./pizza192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./pizza512.png">
+
+<!-- ICONA iOS -->
+<link rel="apple-touch-icon" href="./pizza512.png">
+
+<!-- MANIFEST -->
+<link rel="manifest" href="./manifest.webmanifest">
+
+<!-- iOS PWA -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PizzaCalc">
+
+<style>
+:root {
+  --bg: #111;
+  --card: #1e1e1e;
+  --accent: #ffb347;
+  --accent-soft: rgba(255, 179, 71, 0.15);
+  --text: #f5f5f5;
+  --muted: #aaaaaa;
+  --danger: #ff6b6b;
+  --radius: 14px;
+  --pad: 14px;
+  --font-main: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-main);
+  background: radial-gradient(circle at top, #222 0, #050505 55%);
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+}
+
+.app {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100vh;
+  padding: 16px 14px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title-block {
+  text-align: center;
+  margin: 0 auto 18px auto;
+  max-width: 600px;
+}
+
+.title-block h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.title-block .subtitle {
+  margin-top: 4px;
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+/* CARD */
+.card {
+  background: linear-gradient(145deg, #181818, #101010);
+  border-radius: var(--radius);
+  padding: var(--pad);
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.card-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.card-caption {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* GRID */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1.1fr 1.1fr;
+  gap: 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+
+input[type="number"],
+input[type="text"],
+select {
+  width: 100%;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--text);
+  padding: 8px 11px;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+input[type="number"]:focus,
+input[type="text"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(255, 179, 71, 0.4);
+}
+
+/* SLIDER — stile originale */
+input[type="range"] {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  border: none;
+}
+
+.range-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.range-value {
+  min-width: 46px;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* CHIPS */
+.chips-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  color: var(--muted);
+  transition: 0.15s;
+}
+
+.chip.active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(255,179,71,0.5);
+}
+
+/* TOGGLE CHIP */
+.toggle-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.toggle-chip {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 999px;
+  text-align: center;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  color: var(--muted);
+  transition: 0.15s;
+}
+
+.toggle-chip.active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(255,179,71,0.5);
+}
+
+/* RESULTS */
+.results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.result-pill {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.result-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.result-value {
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-highlight {
+  color: var(--accent);
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<header>
+  <div class="title-block">
+    <h1>Calcoliamo la Pizza</h1>
+    <div class="subtitle">Ingredienti in base alle tue impostazioni.</div>
+  </div>
+</header>
+
+<!-- 🔥 CARD MODALITÀ DI CALCOLO -->
+<section class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Modalità di calcolo</div>
+      <div class="card-caption">Scegli come vuoi calcolare l’impasto.</div>
+    </div>
+  </div>
+
+  <div class="toggle-row">
+    <div id="modePizze" class="toggle-chip active">Calcolo da pizze</div>
+    <div id="modeFarina" class="toggle-chip">Calcolo da farina</div>
+  </div>
+</section>
+
+<!-- 🔥 CARD IMPOSTAZIONI BASE -->
+<section class="card" id="cardBase">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Impostazioni base</div>
+      <div class="card-caption">Imposta pizze o farina in base alla modalità.</div>
+    </div>
+  </div>
+
+  <!-- wrapper separato -->
+  <div class="grid-2" id="pizzeWrapper">
+    <div class="field" id="numPizzeField">
+      <label for="numPizze">Numero pizze</label>
+      <input type="number" id="numPizze" min="1" step="1" value="6">
+    </div>
+
+    <div class="field" id="pesoPizzaField">
+      <label for="pesoPizza">Peso pizza <span class="unit">g</span></label>
+      <input type="number" id="pesoPizza" min="100" step="10" value="285">
+    </div>
+  </div>
+
+  <div class="field" id="farinaField" style="margin-top: 12px; display:none;">
+    <label for="farinaInput">Farina totale (g)</label>
+    <input type="number" id="farinaInput" placeholder="Es. 1000">
+  </div>
+
+  <div class="chips-grid" id="chipsWrapper">
+    <button type="button" class="chip" data-preset-pizze="1">1</button>
+    <button type="button" class="chip" data-preset-pizze="2">2</button>
+    <button type="button" class="chip" data-preset-pizze="3">3</button>
+    <button type="button" class="chip" data-preset-pizze="4">4</button>
+    <button type="button" class="chip" data-preset-pizze="5">5</button>
+    <button type="button" class="chip active" data-preset-pizze="6">6</button>
+    <button type="button" class="chip" data-preset-pizze="7">7</button>
+    <button type="button" class="chip" data-preset-pizze="8">8</button>
+    <button type="button" class="chip" data-preset-pizze="9">9</button>
+    <button type="button" class="chip" data-preset-pizze="10">10</button>
+    <button type="button" class="chip" data-preset-pizze="11">11</button>
+    <button type="button" class="chip" data-preset-pizze="12">12</button>
+  </div>
+</section>
+
+<!-- 🔥 CONTINUA NELLA PARTE 2 -->
+<!-- 🔥 CARD PERCENTUALI -->
+<section class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Percentuali impasto</div>
+      <div class="card-caption">Idratazione, sale, lievito e mix farine.</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="field">
+      <label for="idratazione">Idratazione <span class="unit">% su farina</span></label>
+      <div class="range-row">
+        <input type="range" id="idratazione" min="50" max="85" step="1" value="68">
+        <div class="range-value" id="idratazioneVal">68%</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="sale">Sale <span class="unit">% su farina</span></label>
+      <div class="range-row">
+        <input type="range" id="sale" min="1.5" max="3" step="0.1" value="2.6">
+        <div class="range-value" id="saleVal">2.6%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="field" style="margin-top: 8px;">
+    <label for="lievito">Lievito <span class="unit">% su farina</span></label>
+    <div class="range-row">
+      <input type="range" id="lievito" min="0.05" max="3" step="0.05" value="0.4">
+      <div class="range-value" id="lievitoVal">0.40%</div>
+    </div>
+  </div>
+
+  <div class="mix-row">
+    <div class="field">
+      <label for="farina1">Farina 1</label>
+      <input type="text" id="farina1" value="Farina 0">
+    </div>
+
+    <div class="field">
+      <label for="mixPerc">Mix farina 1 <span class="unit">% su totale</span></label>
+      <div class="range-row">
+        <input type="range" id="mixPerc" min="0" max="100" step="0.5" value="57">
+        <div class="range-value" id="mixPercVal">57%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mix-row" style="margin-top: 6px;">
+    <div class="field">
+      <label for="farina2">Farina 2</label>
+      <input type="text" id="farina2" value="Farina 00">
+    </div>
+
+    <div class="field">
+      <label>&nbsp;</label>
+      <div class="range-row">
+        <button id="btnAurea" class="toggle-chip">
+          <span class="phi">φ</span> Proporzione Aurea
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="helper">
+    Farina 2 verrà calcolata come (100 − mix farina 1)%.
+  </div>
+</section>
+
+<!-- 🔥 CARD RISULTATI -->
+<section class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Ingredienti calcolati</div>
+      <div class="card-caption">In base alle impostazioni correnti.</div>
+    </div>
+    <button type="button" class="toggle-chip" id="btnReset">Reset</button>
+  </div>
+
+  <div class="results">
+    <div class="result-pill">
+      <div class="result-label">Farina totale</div>
+      <div class="result-value result-highlight" id="farinaTotale">– g</div>
+    </div>
+
+    <div class="result-pill">
+      <div class="result-label">Acqua</div>
+      <div class="result-value" id="acqua">– g</div>
+    </div>
+
+    <div class="result-pill">
+      <div class="result-label">Sale</div>
+      <div class="result-value" id="saleGr">– g</div>
+    </div>
+
+    <div class="result-pill">
+      <div class="result-label">Lievito</div>
+      <div class="result-value" id="lievitoGr">– g</div>
+    </div>
+  </div>
+
+  <div class="results" style="margin-top: 10px;">
+    <div class="result-pill">
+      <div class="result-label" id="farina1Label">Farina 1</div>
+      <div class="result-value" id="farina1Gr">– g</div>
+    </div>
+
+    <div class="result-pill">
+      <div class="result-label" id="farina2Label">Farina 2</div>
+      <div class="result-value" id="farina2Gr">– g</div>
+    </div>
+  </div>
+
+  <!-- 🔥 PIZZE PRODOTTE + PESO REALE -->
+  <div class="results" id="pizzeProdotteBox" style="margin-top: 10px; display:none;">
+    <div class="result-pill">
+      <div class="result-label">Pizze</div>
+      <div class="result-value result-highlight" id="pizzeProdotte">–</div>
+    </div>
+
+    <div class="result-pill">
+      <div class="result-label">Peso pizza reale</div>
+      <div class="result-value" id="pesoPizzaReale">– g</div>
+    </div>
+  </div>
+</section>
+
+<!-- 🔥 PRESET -->
+<section class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Preset personali</div>
+      <div class="card-caption">Salva e richiama le tue combinazioni preferite.</div>
+    </div>
+  </div>
+
+  <div class="preset-row">
+    <select id="presetSelect">
+      <option value="">Nessun preset selezionato</option>
+    </select>
+    <button type="button" class="toggle-chip" id="btnCaricaPreset">Carica</button>
+  </div>
+
+  <div class="preset-name">
+    <label for="presetName">Nome preset</label>
+    <input type="text" id="presetName" placeholder="Es. Napoletana 24h">
+  </div>
+
+  <div class="btn-row">
+    <button type="button" class="toggle-chip" id="btnSalvaPreset">Salva preset</button>
+    <button type="button" class="toggle-chip btn-danger" id="btnEliminaPreset">Elimina</button>
+  </div>
+
+  <div class="helper">
+    I preset vengono salvati sul dispositivo (localStorage) e restano disponibili anche offline.
+  </div>
+</section>
+
+<footer>
+  <span>PizzaCalc PWA</span>
+  <span>Versione base · offline ready</span>
+</footer>
+
+</div>
+
+<script>
+/* -----------------------------
+   ELEMENTI
+----------------------------- */
+const modePizze = document.getElementById("modePizze");
+const modeFarina = document.getElementById("modeFarina");
+
+const pizzeWrapper = document.getElementById("pizzeWrapper");
+const chipsWrapper = document.getElementById("chipsWrapper");
+const numPizzeField = document.getElementById("numPizzeField");
+const pesoPizzaField = document.getElementById("pesoPizzaField");
+
+const farinaField = document.getElementById("farinaField");
+
+const numPizzeEl = document.getElementById("numPizze");
+const pesoPizzaEl = document.getElementById("pesoPizza");
+const farinaInputEl = document.getElementById("farinaInput");
+
+const idratazioneEl = document.getElementById("idratazione");
+const saleEl = document.getElementById("sale");
+const lievitoEl = document.getElementById("lievito");
+const mixPercEl = document.getElementById("mixPerc");
+
+const idratazioneValEl = document.getElementById("idratazioneVal");
+const saleValEl = document.getElementById("saleVal");
+const lievitoValEl = document.getElementById("lievitoVal");
+const mixPercValEl = document.getElementById("mixPercVal");
+
+const farina1El = document.getElementById("farina1");
+const farina2El = document.getElementById("farina2");
+
+const farinaTotaleEl = document.getElementById("farinaTotale");
+const acquaEl = document.getElementById("acqua");
+const saleGrEl = document.getElementById("saleGr");
+const lievitoGrEl = document.getElementById("lievitoGr");
+const farina1GrEl = document.getElementById("farina1Gr");
+const farina2GrEl = document.getElementById("farina2Gr");
+
+const pizzeProdotteBox = document.getElementById("pizzeProdotteBox");
+const pizzeProdotteEl = document.getElementById("pizzeProdotte");
+const pesoPizzaRealeEl = document.getElementById("pesoPizzaReale");
+
+const chips = document.querySelectorAll(".chip");
+
+/* -----------------------------
+   MODALITÀ DI CALCOLO
+----------------------------- */
+let mode = "pizze";
+
+modePizze.addEventListener("click", () => {
+  mode = "pizze";
+
+  modePizze.classList.add("active");
+  modeFarina.classList.remove("active");
+
+  farinaField.style.display = "none";
+  pesoPizzaField.style.display = "block";
+  numPizzeField.style.display = "block";
+  chipsWrapper.style.display = "grid";
+
+  pizzeProdotteBox.style.display = "none";
+
+  calcola();
+});
+
+modeFarina.addEventListener("click", () => {
+  mode = "farina";
+
+  modeFarina.classList.add("active");
+  modePizze.classList.remove("active");
+
+  farinaField.style.display = "block";
+  pesoPizzaField.style.display = "none";
+  chipsWrapper.style.display = "none";
+
+  numPizzeField.style.display = "block";
+
+  calcola();
+});
+
+/* -----------------------------
+   AGGIORNA LABEL RANGE
+----------------------------- */
+function updateRangeLabels() {
+  idratazioneValEl.textContent = idratazioneEl.value + "%";
+  saleValEl.textContent = parseFloat(saleEl.value).toFixed(1) + "%";
+  lievitoValEl.textContent = parseFloat(lievitoEl.value).toFixed(2) + "%";
+  mixPercValEl.textContent = mixPercEl.value + "%";
+}
+
+/* -----------------------------
+   CALCOLO PRINCIPALE
+----------------------------- */
+function calcola() {
+  const idr = parseFloat(idratazioneEl.value) || 0;
+  const saleP = parseFloat(saleEl.value) || 0;
+  const lievP = parseFloat(lievitoEl.value) || 0;
+  const mixP = parseFloat(mixPercEl.value) || 0;
+
+  let farinaTotale = 0;
+
+  if (mode === "pizze") {
+    const n = parseFloat(numPizzeEl.value) || 0;
+    const peso = parseFloat(pesoPizzaEl.value) || 0;
+
+    const pesoTotale = n * peso;
+    const fattore = 1 + idr/100 + saleP/100 + lievP/100;
+
+    farinaTotale = pesoTotale / fattore;
+    pizzeProdotteBox.style.display = "none";
+
+  } else {
+    const f = parseFloat(farinaInputEl.value) || 0;
+    const n = parseFloat(numPizzeEl.value) || 0;
+
+    farinaTotale = f;
+
+    if (n > 0) {
+      const fattore = 1 + idr/100 + saleP/100 + lievP/100;
+      const pesoReale = (farinaTotale * fattore) / n;
+
+      pizzeProdotteEl.textContent = n;
+      pesoPizzaRealeEl.textContent = pesoReale.toFixed(1) + " g";
+      pizzeProdotteBox.style.display = "grid";
+    }
+  }
+
+  const acqua = farinaTotale * (idr/100);
+  const saleGr = farinaTotale * (saleP/100);
+  const lievitoGr = farinaTotale * (lievP/100);
+
+  const f1 = farinaTotale * (mixP/100);
+  const f2 = farinaTotale - f1;
+
+  const fmt = v => isFinite(v) ? v.toFixed(1) : "–";
+
+  farinaTotaleEl.textContent = fmt(farinaTotale) + " g";
+  acquaEl.textContent = fmt(acqua) + " g";
+  saleGrEl.textContent = fmt(saleGr) + " g";
+  lievitoGrEl.textContent = fmt(lievitoGr) + " g";
+  farina1GrEl.textContent = fmt(f1) + " g";
+  farina2GrEl.textContent = fmt(f2) + " g";
+}
+
+/* -----------------------------
+   EVENTI
+----------------------------- */
+[idratazioneEl, saleEl, lievitoEl, mixPercEl, farina1El, farina2El].forEach(el => {
+  el.addEventListener("input", () => {
+    updateRangeLabels();
+    calcola();
+  });
+});
+
+[numPizzeEl, pesoPizzaEl, farinaInputEl].forEach(el => {
+  el.addEventListener("input", calcola);
+});
+
+chips.forEach(chip => {
+  chip.addEventListener("click", () => {
+    chips.forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    numPizzeEl.value = chip.dataset.presetPizze;
+    calcola();
+  });
+});
+
+document.getElementById("btnReset").addEventListener("click", () => {
+
+  // Modalità predefinita
+  mode = "pizze";
+  modePizze.classList.add("active");
+  modeFarina.classList.remove("active");
+
+  // Ripristino valori base
+  numPizzeEl.value = 6;
+  pesoPizzaEl.value = 285;
+  farinaInputEl.value = "";
+
+  idratazioneEl.value = 68;
+  saleEl.value = 2.6;
+  lievitoEl.value = 0.4;
+  mixPercEl.value = 57;
+
+  farina1El.value = "Farina 0";
+  farina2El.value = "Farina 00";
+
+  // UI visibilità
+  farinaField.style.display = "none";
+  pesoPizzaField.style.display = "block";
+  numPizzeField.style.display = "block";
+  chipsWrapper.style.display = "grid";
+
+  // Chip: seleziona 6
+  chips.forEach(c => c.classList.remove("active"));
+  document.querySelector('[data-preset-pizze="6"]').classList.add("active");
+
+  // Aggiorna slider label
+  updateRangeLabels();
+
+  // Ricalcola tutto
+  calcola();
+});
+
+/* -----------------------------
+   PROPORZIONE AUREA
+----------------------------- */
+document.getElementById("btnAurea").addEventListener("click", () => {
+  mixPercEl.value = 61.8;
+  mixPercValEl.textContent = "61.8%";
+  calcola();
+});
+
+/* -----------------------------
+   INIZIALIZZAZIONE
+----------------------------- */
+updateRangeLabels();
+calcola();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("./sw.js")
+      .then(reg => console.log("✅ Service Worker registrato:", reg.scope))
+      .catch(err => console.error("❌ Errore registrazione SW:", err));
+  });
+}
+</script>
+
+</body>
+</html>
