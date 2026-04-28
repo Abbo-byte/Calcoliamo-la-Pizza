@@ -1,21 +1,22 @@
-const CACHE_NAME = "pizza-calc-v1";
-const ASSETS = [
-  "./",
+const CACHE_NAME = "pizza-calc-v3";
+
+// Asset statici sicuri (nessun redirect)
+const STATIC_ASSETS = [
   "./index.html",
   "./manifest.webmanifest",
   "./pizza192.png",
   "./pizza512.png"
 ];
 
-// Installazione e caching iniziale
+// Installazione
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
 
-// Attivazione e pulizia vecchie cache
+// Attivazione + pulizia vecchie cache
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -25,20 +26,40 @@ self.addEventListener("activate", event => {
   self.clients.claim();
 });
 
-// Strategia di fetch
+// Fetch
 self.addEventListener("fetch", event => {
   const req = event.request;
 
-  // Network-first per HTML
+  // Safari iOS: NON intercettare redirect o navigazioni strane
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req).catch(() => caches.match("./index.html"))
+      fetch(req)
+        .then(res => {
+          // Se la risposta è un redirect, NON usarla dal SW
+          if (res.type === "opaqueredirect") {
+            return fetch("./index.html");
+          }
+          return res;
+        })
+        .catch(() => caches.match("./index.html"))
     );
     return;
   }
 
-  // Cache-first per asset statici
+  // Stale-while-revalidate per asset statici
   event.respondWith(
-    caches.match(req).then(resp => resp || fetch(req))
+    caches.match(req).then(cacheRes => {
+      const fetchPromise = fetch(req)
+        .then(networkRes => {
+          // Salva solo risposte valide
+          if (networkRes && networkRes.status === 200 && networkRes.type === "basic") {
+            caches.open(CACHE_NAME).then(cache => cache.put(req, networkRes.clone()));
+          }
+          return networkRes;
+        })
+        .catch(() => cacheRes);
+
+      return cacheRes || fetchPromise;
+    })
   );
 });
