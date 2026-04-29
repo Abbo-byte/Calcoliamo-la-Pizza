@@ -293,14 +293,10 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: 10px;
 }
 
-#btnCaricaPreset {
-  min-width: 140px;   /* leggero aumento */
-  text-align: center; /* mantiene il testo centrato */
-}
-
 #btnEliminaPreset {
-  color: #ff3b30; /* rosso iOS */
-  border-color: rgba(255, 59, 48, 0.4);
+    display: none;
+    color: #ff3b30; /* rosso iOS */
+    border-color: rgba(255, 59, 48, 0.4);
 }
 
 #btnAurea {
@@ -316,6 +312,26 @@ input[type="range"]::-webkit-slider-thumb {
 
 .result .result-value {
     color: #007aff;
+}
+
+.preset-active {
+    border-color: #34c759 !important; /* verde iOS */
+    box-shadow: 0 0 0 1px rgba(52,199,89,0.45); /* outline verde soft */
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+#btnAggiornaPreset {
+    display: none;
+    color: #34c759; /* verde iOS */
+    border-color: rgba(52,199,89,0.4);
+}
+
+#btnReset {
+    flex: 0 0 auto !important; /* impedisce l’allargamento */
+	/* width: 180px !important; scegli tu la misura */
+	width: calc(50% - 8px); /* margine interno per separazione */
+    padding-left: 10px !important;
+    padding-right: 10px !important;
 }
 
 </style>
@@ -400,7 +416,7 @@ input[type="range"]::-webkit-slider-thumb {
 	<div class="field">
 		<label for="idratazione">Idratazione <span class="unit">% su farina</span></label>
 		<div class="range-row">
-			<input type="range" id="idratazione" min="50" max="85" step="1" value="68">
+			<input type="range" id="idratazione" min="40" max="100" step="1" value="68">
 			<div class="range-value" id="idratazioneVal">68%</div>
 		</div>
 	</div>
@@ -408,7 +424,7 @@ input[type="range"]::-webkit-slider-thumb {
 	<div class="field" style="margin-top: 12px;">
 		<label for="sale">Sale <span class="unit">% su farina</span></label>
 		<div class="range-row">
-			<input type="range" id="sale" min="1.5" max="3.5" step="0.1" value="2.6">
+			<input type="range" id="sale" min="0" max="4" step="0.1" value="2.6">
 			<div class="range-value" id="saleVal">2.6%</div>
 		</div>
 	</div>
@@ -424,14 +440,16 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="mix-row">
         <div class="field">
             <label for="farina1">Farina 1</label>
-            <input type="text" id="farina1" value="Farina tipo 0">
+            <input type="text" id="farina1" placeholder="Es. Farina 0" value="">
+
         </div>
     </div>
 
     <div class="mix-row" style="margin-top: 6px;">
         <div class="field">
             <label for="farina2">Farina 2</label>
-            <input type="text" id="farina2" value="Farina tipo 00">
+            <input type="text" id="farina2" placeholder="Es. Farina 00" value="">
+
         </div>
 		
 		<div class="field" style="margin-top: 10px;">
@@ -468,13 +486,13 @@ input[type="range"]::-webkit-slider-thumb {
 
     <div class="grid-2">
         <div class="field">
-            <label for="staglioOre">Staglio <span class="unit">ore</span></label>
-            <input type="number" id="staglioOre" min="0" step="0.5" value="2">
+            <label for="staglioOre">Staglio</label>
+			<input type="text" id="staglioOre" placeholder="Es. 2h" value="">
         </div>
 
         <div class="field">
-            <label for="apprettoOre">Appretto <span class="unit">ore</span></label>
-            <input type="number" id="apprettoOre" min="0" step="0.5" value="4">
+            <label for="apprettoOre">Appretto</label>
+			<input type="text" id="apprettoOre" placeholder="Es. 4h" value="">
         </div>
     </div>
 </section>
@@ -549,16 +567,16 @@ input[type="range"]::-webkit-slider-thumb {
         <select id="presetSelect">
             <option value="">Nessun preset selezionato</option>
         </select>
-        <button type="button" class="toggle-chip" id="btnCaricaPreset">Carica</button>
     </div>
 
     <div class="preset-name">
         <label for="presetName">Nome preset</label>
-        <input type="text" id="presetName" placeholder="Es. Napoletana 24h">
+        <input type="text" id="presetName" placeholder="New">
     </div>
 
     <div class="btn-row">
         <button type="button" class="toggle-chip" id="btnSalvaPreset">Salva preset</button>
+		<button type="button" class="toggle-chip" id="btnAggiornaPreset">Aggiorna</button>
         <button type="button" class="toggle-chip btn-danger" id="btnEliminaPreset">Elimina</button>
     </div>
 
@@ -622,6 +640,27 @@ const staglioOreEl = document.getElementById("staglioOre");
 const apprettoOreEl = document.getElementById("apprettoOre");
 
 /* -----------------------------
+LISTENER SELECT PRESET
+----------------------------- */
+
+presetSelect.addEventListener("change", () => {
+    const nome = presetSelect.value;
+
+    if (!nome) {
+        presetSelect.classList.remove("preset-active");
+        document.getElementById("btnAggiornaPreset").style.display = "none";
+        document.getElementById("btnEliminaPreset").style.display = "none";
+        return;
+    }
+
+    caricaPreset();
+    presetSelect.classList.add("preset-active");
+
+    document.getElementById("btnAggiornaPreset").style.display = "block";
+    document.getElementById("btnEliminaPreset").style.display = "block";
+});
+
+/* -----------------------------
 MODALITÀ DI CALCOLO
 ----------------------------- */
 let mode = "pizze";
@@ -657,10 +696,44 @@ modeFarina.addEventListener("click", () => {
 AGGIORNA LABEL RANGE
 ----------------------------- */
 function updateRangeLabels() {
-    idratazioneValEl.textContent = idratazioneEl.value + "%";
-    saleValEl.textContent = parseFloat(saleEl.value).toFixed(1) + "%";
+    const idr = parseFloat(idratazioneEl.value);
+    const sale = parseFloat(saleEl.value);
+
+    // Aggiorna testi
+    idratazioneValEl.textContent = idr + "%";
+    saleValEl.textContent = sale.toFixed(1) + "%";
     lievitoValEl.textContent = parseFloat(lievitoEl.value).toFixed(2) + "%";
     mixPercValEl.textContent = mixPercEl.value + "%";
+
+    /* -----------------------------
+       COLORAZIONE DINAMICA IDRATAZIONE
+       ----------------------------- */
+
+    if (idr > 85) {
+        // 🔥 rosso iOS
+        idratazioneValEl.style.color = "#ff3b30";
+    } else if (idr < 50) {
+        // 🔵 celeste iOS
+        idratazioneValEl.style.color = "#5ac8fa";
+    } else {
+        // colore normale
+        idratazioneValEl.style.color = "var(--accent)";
+    }
+
+    /* -----------------------------
+       COLORAZIONE DINAMICA SALE
+       ----------------------------- */
+
+    if (sale > 3) {
+        // 🔥 rosso iOS
+        saleValEl.style.color = "#ff3b30";
+    } else if (sale < 1) {
+        // 🔵 celeste iOS
+        saleValEl.style.color = "#5ac8fa";
+    } else {
+        // colore normale
+        saleValEl.style.color = "var(--accent)";
+    }
 }
 
 /* -----------------------------
@@ -757,11 +830,24 @@ document.getElementById("btnReset").addEventListener("click", () => {
     lievitoEl.value = 0.4;
     mixPercEl.value = 57;
 
-    farina1El.value = "Farina 0";
-    farina2El.value = "Farina 00";
+    farina1El.value = "";
+    farina2El.value = "";
 
-    staglioOreEl.value = 2;
-    apprettoOreEl.value = 4;
+    staglioOreEl.value = "";
+    apprettoOreEl.value = "";
+	
+    // 🔥 Ripristino campo preset
+    const presetNameEl = document.getElementById("presetName");
+    presetNameEl.value = "";            // svuota il campo
+    presetNameEl.placeholder = "New";   // ripristina il placeholder
+	
+	// 🔥 Ripristino select preset
+    document.getElementById("presetSelect").value = "";
+	
+	// 🔥 Rimuove evidenziazione e pulsanti
+	presetSelect.classList.remove("preset-active");
+	document.getElementById("btnAggiornaPreset").style.display = "none";
+	document.getElementById("btnEliminaPreset").style.display = "none";
 
     farinaField.style.display = "none";
     pesoPizzaField.style.display = "block";
@@ -804,6 +890,7 @@ function aggiornaListaPreset() {
 
 function salvaPreset() {
     const nome = document.getElementById("presetName").value.trim();
+
     if (!nome) {
         alert("Inserisci un nome per il preset.");
         return;
@@ -825,8 +912,60 @@ function salvaPreset() {
     };
 
     localStorage.setItem("preset_" + nome, JSON.stringify(preset));
+
+    // 🔥 Aggiorna lista preset
     aggiornaListaPreset();
+	
+	document.getElementById("presetSelect").addEventListener("change", () => {
+		const nome = presetSelect.value;
+		if (!nome) return;
+		caricaPreset();
+	});
+	
+	// 🔥 Seleziona automaticamente il preset appena salvato
+	document.getElementById("presetSelect").value = nome;
+
+	// 🔥 Evidenzia come preset attivo
+	presetSelect.classList.add("preset-active");
+
+	// 🔥 Mostra i pulsanti Aggiorna ed Elimina
+	document.getElementById("btnAggiornaPreset").style.display = "block";
+	document.getElementById("btnEliminaPreset").style.display = "block";
+
+    // 🔥 Reset campo nome preset
+    const presetNameEl = document.getElementById("presetName");
+    presetNameEl.value = "";
+    presetNameEl.placeholder = "New";
+
     alert("Preset salvato!");
+}
+
+function aggiornaPreset() {
+    const nome = presetSelect.value;
+
+    if (!nome) {
+        alert("Nessun preset selezionato da aggiornare.");
+        return;
+    }
+
+    const preset = {
+        mode,
+        numPizze: numPizzeEl.value,
+        pesoPizza: pesoPizzaEl.value,
+        farina: farinaInputEl.value,
+        idr: idratazioneEl.value,
+        sale: saleEl.value,
+        lievito: lievitoEl.value,
+        mix: mixPercEl.value,
+        farina1: farina1El.value,
+        farina2: farina2El.value,
+        staglio: staglioOreEl.value,
+        appretto: apprettoOreEl.value
+    };
+
+    localStorage.setItem("preset_" + nome, JSON.stringify(preset));
+
+    alert("Preset aggiornato!");
 }
 
 function caricaPreset() {
@@ -858,9 +997,11 @@ function caricaPreset() {
 
     staglioOreEl.value = p.staglio ?? 0;
     apprettoOreEl.value = p.appretto ?? 0;
-
+	
     updateRangeLabels();
     calcola();
+	presetSelect.classList.add("preset-active");
+
 }
 
 function eliminaPreset() {
@@ -872,11 +1013,25 @@ function eliminaPreset() {
 
     localStorage.removeItem("preset_" + nome);
     aggiornaListaPreset();
+	
+	// 🔥 Reset campo nome preset
+    const presetNameEl = document.getElementById("presetName");
+    presetNameEl.value = "";
+    presetNameEl.placeholder = "New";
+
+    // 🔥 Reset select preset
+    document.getElementById("presetSelect").value = "";
+	
+	// 🔥 Rimuove evidenziazione e pulsanti
+	presetSelect.classList.remove("preset-active");
+	document.getElementById("btnAggiornaPreset").style.display = "none";
+	document.getElementById("btnEliminaPreset").style.display = "none";
+	
     alert("Preset eliminato.");
 }
 
 document.getElementById("btnSalvaPreset").addEventListener("click", salvaPreset);
-document.getElementById("btnCaricaPreset").addEventListener("click", caricaPreset);
+document.getElementById("btnAggiornaPreset").addEventListener("click", aggiornaPreset);
 document.getElementById("btnEliminaPreset").addEventListener("click", eliminaPreset);
 
 aggiornaListaPreset();
