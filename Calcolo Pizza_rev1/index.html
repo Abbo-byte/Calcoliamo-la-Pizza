@@ -477,22 +477,37 @@ input[type="range"]::-webkit-slider-thumb {
 
 <!-- 🔥 CARD TEMPI DI LIEVITAZIONE -->
 <section class="card">
-    <div class="card-header">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
         <div>
             <div class="card-title">Tempi di lievitazione</div>
-            <div class="card-caption">Staglio e appretto in ore.</div>
+            <div class="card-caption">Gestisci staglio e appretto in proporzione.</div>
+        </div>
+
+        <div class="field" style="width: 120px; margin: 0;">
+            <label for="lievitazioneTotale" style="text-align: right;">Totale <span class="unit">ore</span></label>
+            <input type="number" id="lievitazioneTotale" min="1" step="0.5" placeholder="Es. 24">
         </div>
     </div>
 
-    <div class="grid-2">
+    <!-- RIGA 2: SLIDER -->
+    <div class="field" style="margin-top: 6px;">
+        <label for="propStaglio">Proporzione <span class="unit">%</span></label>
+        <div class="range-row">
+			<input type="range" id="propStaglio" min="0" max="0" step="1" value="0">
+            <div class="range-value" id="propStaglioVal">33%</div>
+        </div>
+    </div>
+
+    <!-- RIGA 3: STAGLIO + APPRETTO -->
+    <div class="grid-2" style="margin-top: 12px;">
         <div class="field">
-            <label for="staglioOre">Staglio</label>
-			<input type="text" id="staglioOre" placeholder="Es. 2h" value="">
+            <label>Staglio</label>
+            <input type="text" id="staglioOre" readonly>
         </div>
 
         <div class="field">
-            <label for="apprettoOre">Appretto</label>
-			<input type="text" id="apprettoOre" placeholder="Es. 4h" value="">
+            <label>Appretto</label>
+            <input type="text" id="apprettoOre" readonly>
         </div>
     </div>
 </section>
@@ -548,7 +563,7 @@ input[type="range"]::-webkit-slider-thumb {
         </div>
 
         <div class="result-pill">
-            <div class="result-label">Peso pizza reale</div>
+            <div class="result-label">Peso pizza </div>
             <div class="result-value" id="pesoPizzaReale">– g</div>
         </div>
     </div>
@@ -586,8 +601,8 @@ input[type="range"]::-webkit-slider-thumb {
 </section>
 
 <footer>
-    <span>PizzaCalc PWA</span>
-    <span>Versione base · offline ready</span>
+    <span>PizzaCalc PWA by Abbo-byte V_1.0</span>
+    <span>· offline ready</span>
 </footer>
 
 </div>
@@ -628,6 +643,8 @@ const saleGrEl = document.getElementById("saleGr");
 const lievitoGrEl = document.getElementById("lievitoGr");
 const farina1GrEl = document.getElementById("farina1Gr");
 const farina2GrEl = document.getElementById("farina2Gr");
+const farina1Label = document.getElementById("farina1Label");
+const farina2Label = document.getElementById("farina2Label");
 
 const pizzeProdotteBox = document.getElementById("pizzeProdotteBox");
 const pizzeProdotteEl = document.getElementById("pizzeProdotte");
@@ -638,6 +655,9 @@ const chips = document.querySelectorAll(".chip");
 /* NUOVI ELEMENTI */
 const staglioOreEl = document.getElementById("staglioOre");
 const apprettoOreEl = document.getElementById("apprettoOre");
+const lievitazioneTotaleEl = document.getElementById("lievitazioneTotale");
+const propStaglioEl = document.getElementById("propStaglio");
+const propStaglioValEl = document.getElementById("propStaglioVal");
 
 /* -----------------------------
 LISTENER SELECT PRESET
@@ -736,6 +756,53 @@ function updateRangeLabels() {
     }
 }
 
+function aggiornaSliderIncrementi() {
+    const tot = parseFloat(lievitazioneTotaleEl.value) || 0;
+
+    if (tot <= 0) {
+        propStaglioEl.max = 0;
+        propStaglioEl.value = 0;
+        return;
+    }
+
+    // 🔥 Numero di step = totale ore * 2 (mezze ore)
+    const steps = Math.round(tot * 2);
+
+    propStaglioEl.max = steps;
+
+    // 🔥 Imposta posizione predefinita (circa 33%)
+    const defaultStep = Math.round(steps * 0.33);
+    propStaglioEl.value = defaultStep;
+
+    // Aggiorna UI
+    calcolaLievitazione();
+}
+
+function calcolaLievitazione() {
+    const tot = parseFloat(lievitazioneTotaleEl.value);
+
+    // 🔥 Se non c’è un totale, azzera tutto e blocca il calcolo
+    if (!tot || tot <= 0) {
+        staglioOreEl.value = "-";
+        apprettoOreEl.value = "-";
+        propStaglioValEl.textContent = "0%";
+        return;
+    }
+
+    const stepIndex = parseInt(propStaglioEl.value) || 0;
+
+    // Ogni step = 0.5h
+    const oreStaglio = stepIndex * 0.5;
+    const oreAppretto = tot - oreStaglio;
+
+    staglioOreEl.value = oreStaglio > 0 ? oreStaglio.toFixed(1) + " h" : "-";
+    apprettoOreEl.value = oreAppretto > 0 ? oreAppretto.toFixed(1) + " h" : "-";
+
+    // Percentuale solo informativa
+    const prop = Math.round((oreStaglio / tot) * 100);
+    propStaglioValEl.textContent = prop + "%";
+}
+
 /* -----------------------------
 CALCOLO PRINCIPALE
 ----------------------------- */
@@ -779,8 +846,12 @@ function calcola() {
 
     const f1 = farinaTotale * (mixP/100);
     const f2 = farinaTotale - f1;
-
+	
     const fmt = v => isFinite(v) ? v.toFixed(1) : "–";
+	
+	// 🔥 Label dinamiche farine con fallback "-"
+	farina1Label.textContent = farina1El.value.trim() !== "" ? farina1El.value : "Farina 1";
+	farina2Label.textContent = farina2El.value.trim() !== "" ? farina2El.value : "Farina 2";
 
     farinaTotaleEl.textContent = fmt(farinaTotale) + " g";
     acquaEl.textContent = fmt(acqua) + " g";
@@ -791,7 +862,7 @@ function calcola() {
 }
 
 /* -----------------------------
-EVENTI
+EVENTI LISTENER
 ----------------------------- */
 [idratazioneEl, saleEl, lievitoEl, mixPercEl, farina1El, farina2El].forEach(el => {
     el.addEventListener("input", () => {
@@ -800,7 +871,7 @@ EVENTI
     });
 });
 
-[numPizzeEl, pesoPizzaEl, farinaInputEl, staglioOreEl, apprettoOreEl].forEach(el => {
+[numPizzeEl, pesoPizzaEl, farinaInputEl].forEach(el => {
     el.addEventListener("input", calcola);
 });
 
@@ -811,6 +882,16 @@ chips.forEach(chip => {
         numPizzeEl.value = chip.dataset.presetPizze;
         calcola();
     });
+});
+
+lievitazioneTotaleEl.addEventListener("input", () => {
+    aggiornaSliderIncrementi();
+    calcola();
+});
+
+propStaglioEl.addEventListener("input", () => {
+    calcolaLievitazione();
+    calcola();
 });
 
 /* -----------------------------
@@ -833,10 +914,16 @@ document.getElementById("btnReset").addEventListener("click", () => {
     farina1El.value = "";
     farina2El.value = "";
 
-    staglioOreEl.value = "";
-    apprettoOreEl.value = "";
-	
-    // 🔥 Ripristino campo preset
+	// 🔥 Reset lievitazione totale + slider proporzione
+	lievitazioneTotaleEl.value = "";
+	propStaglioEl.value = 0;          // 🔥 metti lo slider a 0
+	propStaglioValEl.textContent = "0%";
+
+	// 🔥 Azzeramento campi
+	staglioOreEl.value = "-";
+	apprettoOreEl.value = "-";
+
+	    // 🔥 Ripristino campo preset
     const presetNameEl = document.getElementById("presetName");
     presetNameEl.value = "";            // svuota il campo
     presetNameEl.placeholder = "New";   // ripristina il placeholder
@@ -908,7 +995,9 @@ function salvaPreset() {
         farina1: farina1El.value,
         farina2: farina2El.value,
         staglio: staglioOreEl.value,
-        appretto: apprettoOreEl.value
+        appretto: apprettoOreEl.value,
+		lievitazioneTotale: lievitazioneTotaleEl.value,   // 🔥 nuovo
+		propStaglio: propStaglioEl.value                  // 🔥 nuovo
     };
 
     localStorage.setItem("preset_" + nome, JSON.stringify(preset));
@@ -960,7 +1049,10 @@ function aggiornaPreset() {
         farina1: farina1El.value,
         farina2: farina2El.value,
         staglio: staglioOreEl.value,
-        appretto: apprettoOreEl.value
+        appretto: apprettoOreEl.value,
+		lievitazioneTotale: lievitazioneTotaleEl.value,
+		propStaglio: propStaglioEl.value,
+
     };
 
     localStorage.setItem("preset_" + nome, JSON.stringify(preset));
@@ -997,6 +1089,11 @@ function caricaPreset() {
 
     staglioOreEl.value = p.staglio ?? 0;
     apprettoOreEl.value = p.appretto ?? 0;
+	
+	lievitazioneTotaleEl.value = p.lievitazioneTotale ?? "";
+	propStaglioEl.value = p.propStaglio ?? 33;
+	propStaglioValEl.textContent = (p.propStaglio ?? 33) + "%";
+	calcolaLievitazione();
 	
     updateRangeLabels();
     calcola();
