@@ -168,6 +168,17 @@ input[type="range"] {
     outline: none;
 }
 
+/* 🔥 Slider con riempimento dinamico */
+input[type="range"] {
+    background: linear-gradient(
+        to right,
+        var(--accent) 0%,
+        var(--accent) var(--fill, 0%),
+        rgba(255,255,255,0.08) var(--fill, 0%),
+        rgba(255,255,255,0.08) 100%
+    );
+}
+
 input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
@@ -191,6 +202,20 @@ input[type="range"]::-webkit-slider-thumb {
     font-size: 0.8rem;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
+}
+
+/* 🔥 Glow dorato temporaneo per slider */
+.range-glow {
+    animation: aureaGlow 0.35s ease-out;
+}
+
+@keyframes aureaGlow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255,179,71,0.7);
+    }
+    100% {
+        box-shadow: 0 0 0 12px rgba(255,179,71,0);
+    }
 }
 
 /* CHIPS */
@@ -485,7 +510,7 @@ input[type="range"]::-webkit-slider-thumb {
 
         <div class="field" style="width: 120px; margin: 0;">
             <label for="lievitazioneTotale" style="text-align: right;">Totale <span class="unit">ore</span></label>
-            <input type="number" id="lievitazioneTotale" min="1" step="0.5" value="0">
+		<input type="number" id="lievitazioneTotale" min="1" max="96" step="0.5" placeholder="Max. 96">
         </div>
     </div>
 
@@ -715,6 +740,17 @@ modeFarina.addEventListener("click", () => {
 /* -----------------------------
 AGGIORNA LABEL RANGE
 ----------------------------- */
+
+// 🔥 Riempimento dinamico slider
+function updateSliderFill(slider) {
+    const min = parseFloat(slider.min) || 0;
+    const max = parseFloat(slider.max) || 100;
+    const val = parseFloat(slider.value) || 0;
+
+    const percent = ((val - min) / (max - min)) * 100;
+    slider.style.setProperty("--fill", percent + "%");
+}
+
 function updateRangeLabels() {
     const idr = parseFloat(idratazioneEl.value);
     const sale = parseFloat(saleEl.value);
@@ -724,6 +760,13 @@ function updateRangeLabels() {
     saleValEl.textContent = sale.toFixed(1) + "%";
     lievitoValEl.textContent = parseFloat(lievitoEl.value).toFixed(2) + "%";
     mixPercValEl.textContent = mixPercEl.value + "%";
+	
+	// 🔥 Riempimento slider
+	updateSliderFill(idratazioneEl);
+	updateSliderFill(saleEl);
+	updateSliderFill(lievitoEl);
+	updateSliderFill(mixPercEl);
+
 
     /* -----------------------------
        COLORAZIONE DINAMICA IDRATAZIONE
@@ -759,48 +802,75 @@ function updateRangeLabels() {
 function aggiornaSliderIncrementi() {
     const tot = parseFloat(lievitazioneTotaleEl.value) || 0;
 
+    // 15 minuti = 0.25 ore
+    const stepHours = 0.25;
+
     if (tot <= 0) {
-        propStaglioEl.max = 0;
+        // 🔥 Slider sempre attivo con max coerente (96h → 384 step)
+        propStaglioEl.max = 96 / stepHours; // 384
         propStaglioEl.value = 0;
+        propStaglioValEl.textContent = "0%";
         return;
     }
 
-    // 🔥 Numero di step = totale ore * 2 (mezze ore)
-    const steps = Math.round(tot * 2);
-
+    // 🔥 Numero di step totali in base al totale inserito
+    const steps = Math.round(tot / stepHours);
     propStaglioEl.max = steps;
 
-    // 🔥 Imposta posizione predefinita (circa 33%)
+    // Default: 33%
     const defaultStep = Math.round(steps * 0.33);
     propStaglioEl.value = defaultStep;
 
-    // Aggiorna UI
     calcolaLievitazione();
+}
+
+function formatOre(ore) {
+    if (!isFinite(ore) || ore <= 0) return "-";
+
+    const h = Math.floor(ore);
+    const m = Math.round((ore - h) * 60);
+
+    // Caso limite: 59.9m → 60m
+    if (m === 60) {
+        return `${h + 1}h`;
+    }
+
+    // Solo ore
+    if (m === 0) return `${h}h`;
+
+    // Solo minuti
+    if (h === 0) return `${m}m`;
+
+    // Ore + minuti
+    return `${h}h ${m}m`;
 }
 
 function calcolaLievitazione() {
     const tot = parseFloat(lievitazioneTotaleEl.value);
 
-    // 🔥 Se non c’è un totale, azzera tutto e blocca il calcolo
-    if (!tot || tot <= 0) {
-        staglioOreEl.value = "-";
-        apprettoOreEl.value = "-";
-        propStaglioValEl.textContent = "0%";
-        return;
-    }
+   	if (!tot || tot <= 0) {
+		staglioOreEl.value = "-";
+		apprettoOreEl.value = "-";
+		// 🔥 Mantieni lo slider attivo ma senza percentuale reale
+		propStaglioValEl.textContent = "0%";
+		return;
+	}
 
     const stepIndex = parseInt(propStaglioEl.value) || 0;
 
-    // Ogni step = 0.5h
-    const oreStaglio = stepIndex * 0.5;
+    const oreStaglio = stepIndex * 0.25; // 15 min = 0.25h
     const oreAppretto = tot - oreStaglio;
 
-    staglioOreEl.value = oreStaglio > 0 ? oreStaglio.toFixed(1) + " h" : "-";
-    apprettoOreEl.value = oreAppretto > 0 ? oreAppretto.toFixed(1) + " h" : "-";
+	staglioOreEl.value = formatOre(oreStaglio);
+	apprettoOreEl.value = formatOre(oreAppretto);
 
     // Percentuale solo informativa
     const prop = Math.round((oreStaglio / tot) * 100);
     propStaglioValEl.textContent = prop + "%";
+	
+	// 🔥 Riempimento slider proporzione
+	updateSliderFill(propStaglioEl);
+
 }
 
 /* -----------------------------
@@ -884,7 +954,11 @@ chips.forEach(chip => {
     });
 });
 
-lievitazioneTotaleEl.addEventListener("input", () => {
+lievitazioneTotaleEl.addEventListener("change", () => {
+    let v = parseFloat(lievitazioneTotaleEl.value);
+    if (v > 96) {
+        lievitazioneTotaleEl.value = 96;
+    }
     aggiornaSliderIncrementi();
     calcola();
 });
@@ -915,8 +989,8 @@ document.getElementById("btnReset").addEventListener("click", () => {
     farina2El.value = "";
 
 	// 🔥 Reset lievitazione totale + slider proporzione
-	lievitazioneTotaleEl.value = 0;
-	propStaglioEl.value = 0;           //  🔥 metti lo slider a 0
+	lievitazioneTotaleEl.value = "";
+	propStaglioEl.value = 0;          // 🔥 metti lo slider a 0
 	propStaglioValEl.textContent = "0%";
 
 	// 🔥 Azzeramento campi
@@ -954,6 +1028,14 @@ PROPORZIONE AUREA
 document.getElementById("btnAurea").addEventListener("click", () => {
     mixPercEl.value = 61.8;
     mixPercValEl.textContent = "61.8%";
+	
+	// 🔥 Aggiorna riempimento slider mix
+    updateSliderFill(mixPercEl);
+	
+	// 🔥 Glow dorato sullo slider
+    mixPercEl.classList.add("range-glow");
+    setTimeout(() => mixPercEl.classList.remove("range-glow"), 350);
+	
     calcola();
 });
 
@@ -1091,12 +1173,19 @@ function caricaPreset() {
     apprettoOreEl.value = p.appretto ?? 0;
 	
 	lievitazioneTotaleEl.value = p.lievitazioneTotale ?? "";
-	propStaglioEl.value = p.propStaglio ?? 33;
-	propStaglioValEl.textContent = (p.propStaglio ?? 33) + "%";
+
+	// 🔥 Inizializza correttamente lo slider in base al totale
+	aggiornaSliderIncrementi();
+
+	// 🔥 Applica il valore salvato nel preset
+	propStaglioEl.value = p.propStaglio ?? propStaglioEl.value;
+	propStaglioValEl.textContent = Math.round((parseInt(propStaglioEl.value) * 0.5 / lievitazioneTotaleEl.value) * 100) + "%";
+
+	// 🔥 Calcolo aggiornato
 	calcolaLievitazione();
-	
-    updateRangeLabels();
-    calcola();
+	updateRangeLabels();
+	calcola();
+
 	presetSelect.classList.add("preset-active");
 
 }
@@ -1136,8 +1225,15 @@ aggiornaListaPreset();
 /* -----------------------------
 INIZIALIZZAZIONE
 ----------------------------- */
-updateRangeLabels();
-calcola();
+	// 🔥 Inizializzazione lievitazione come nel reset
+	lievitazioneTotaleEl.value = "";
+	propStaglioEl.value = 0;
+	propStaglioValEl.textContent = "0%";
+	staglioOreEl.value = "-";
+	apprettoOreEl.value = "-";
+	
+	updateRangeLabels();
+	calcola();
 </script>
 <script>
 if ("serviceWorker" in navigator) {
