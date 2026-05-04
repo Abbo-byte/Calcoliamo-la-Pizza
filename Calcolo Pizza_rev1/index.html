@@ -992,6 +992,9 @@ document.getElementById("btnReset").addEventListener("click", () => {
 	lievitazioneTotaleEl.value = "";
 	propStaglioEl.value = 0;          // 🔥 metti lo slider a 0
 	propStaglioValEl.textContent = "0%";
+	
+	// 🔥 Aggiorna riempimento slider proporzione
+	updateSliderFill(propStaglioEl);
 
 	// 🔥 Azzeramento campi
 	staglioOreEl.value = "-";
